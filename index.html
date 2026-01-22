@@ -28,7 +28,7 @@ body {
   text-align: center;
 }
 
-h1, h2 { margin-bottom: 5px; }
+h1,h2 { margin-bottom: 5px; }
 .subtitle { color: #9ca3af; margin-bottom: 20px; }
 
 .card {
@@ -145,12 +145,13 @@ input[type="text"] {
   <div id="localTime" class="small-text">الوقت المحلي: ...</div>
 
   <button onclick="enableNotifications()">🔔 تفعيل تنبيه الأذان</button>
+  <button onclick="enableWitrNotification()">🕋 تفعيل تنبيه صلاة الوتر (1:10 ص)</button>
 
   <p style="margin-top:15px;">🔍 البحث عن مدينة أخرى</p>
   <input type="text" id="cityInput" placeholder="أدخل المدينة أو العنوان">
   <button onclick="searchLocation()">🔎 بحث</button>
 
-  <!-- هنا يمكن إضافة عدادات الصلوات اليومية -->
+  <!-- عدادات الصلوات اليومية -->
   <div id="dailyCounters" style="margin-top:15px;"></div>
 </div>
 
@@ -176,10 +177,7 @@ function formatArabicTime(time24){
   return `${h}:${m.toString().padStart(2,"0")}`;
 }
 
-function seconds(t){
-  const [h,m]=t.split(":").map(Number);
-  return h*3600 + m*60;
-}
+function seconds(t){ const [h,m]=t.split(":").map(Number); return h*3600 + m*60; }
 
 function getNextPrayer(times){
   const now=new Date();
@@ -220,7 +218,6 @@ function render(times){
   nextPrayer=getNextPrayer(times);
   startCountdown(nextPrayer[0],nextPrayer[1]);
 
-  // تحديث اسم المدينة في العدادات
   document.getElementById("cityName").innerText = "المدينة: " + cityName;
   updateLocalTime();
   updateDailyCounters();
@@ -232,7 +229,6 @@ function updateLocalTime(){
   setTimeout(updateLocalTime,1000);
 }
 
-// عدادات الصلوات اليومية
 function updateDailyCounters(){
   if(!prayerTimes) return;
   const now = new Date();
@@ -248,7 +244,7 @@ function updateDailyCounters(){
   document.getElementById("dailyCounters").innerText = `الصلوات المنتهية: ${passed} | المتبقية: ${remaining}`;
 }
 
-// تحديد الموقع تلقائيًا عند فتح الصفحة
+// الموقع تلقائي عند فتح الصفحة
 function requestLocation(){
   navigator.geolocation.getCurrentPosition(pos=>{
     userLat=pos.coords.latitude;
@@ -264,10 +260,24 @@ function requestLocation(){
   });
 }
 
-// تفعيل إشعارات الأذان
+// إشعارات الأذان
 function enableNotifications(){
   Notification.requestPermission().then(p=>{
     if(p==="granted"){ alert("تم تفعيل تنبيه الأذان 🔔"); }
+  });
+}
+
+// إشعار صلاة الوتر 1:10 ص
+function enableWitrNotification(){
+  Notification.requestPermission().then(p=>{
+    if(p!=="granted") return alert("يرجى السماح بالإشعارات أولاً");
+    alert("تم تفعيل تنبيه صلاة الوتر ⏰ الساعة 1:10 صباحًا");
+    setInterval(()=>{
+      const now = new Date();
+      if(now.getHours()===1 && now.getMinutes()===10 && now.getSeconds()===0){
+        new Notification("🕋 حان وقت صلاة الوتر");
+      }
+    },1000);
   });
 }
 
