@@ -5,7 +5,6 @@
 <title>مواقيت الصلاة</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<!-- خط -->
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
 
 <style>
@@ -29,7 +28,7 @@ body {
   text-align: center;
 }
 
-h1 { margin-bottom: 5px; }
+h1, h2 { margin-bottom: 5px; }
 .subtitle { color: #9ca3af; margin-bottom: 20px; }
 
 .card {
@@ -129,26 +128,35 @@ input[type="text"] {
 <body>
 
 <div class="app">
-<h1>🕌 مواقيت الصلاة</h1>
-<div class="subtitle">حسب موقعك الحالي 📍</div>
 
-<div class="card" id="prayers" style="display:none;"></div>
-
-<div class="card" id="countdownCard" style="display:none;">
-  <div id="countdown">جاري حساب الصلاة القادمة…</div>
+<!-- الصفحة الرئيسية -->
+<div id="homePage" class="option-card" style="display:block;">
+  <h2>🕌 مواقيت الصلاة</h2>
+  <div id="prayers"></div>
+  <div class="card" id="countdownCard">
+    <div id="countdown">جاري حساب الصلاة القادمة…</div>
+  </div>
 </div>
 
-<!-- بطاقة العدادات مع البحث وتفعيل الإشعارات -->
-<div id="countersCard" class="option-card" style="display:block;">
-  <p>📊 عدادات الصلاة اليومية</p>
+<!-- بطاقة العدادات -->
+<div id="countersCard" class="option-card">
+  <h2>📊 العدادات</h2>
+  <div id="cityName" class="small-text">المدينة: ...</div>
+  <div id="localTime" class="small-text">الوقت المحلي: ...</div>
+
   <button onclick="enableNotifications()">🔔 تفعيل تنبيه الأذان</button>
+
   <p style="margin-top:15px;">🔍 البحث عن مدينة أخرى</p>
   <input type="text" id="cityInput" placeholder="أدخل المدينة أو العنوان">
   <button onclick="searchLocation()">🔎 بحث</button>
+
+  <!-- هنا يمكن إضافة عدادات الصلوات اليومية -->
+  <div id="dailyCounters" style="margin-top:15px;"></div>
 </div>
 
-<!-- شريط سفلي مبسط -->
+<!-- الشريط السفلي -->
 <div class="bottom-bar">
+  <button onclick="showOption('homePage')"><i class="fas fa-home"></i>الرئيسية</button>
   <button onclick="showOption('countersCard')"><i class="fas fa-chart-bar"></i>العدادات</button>
 </div>
 
@@ -160,6 +168,7 @@ let prayerTimes=null;
 let nextPrayer=null;
 let userLat=null;
 let userLng=null;
+let cityName='...';
 
 function formatArabicTime(time24){
   let [h,m]=time24.split(":").map(Number);
@@ -210,6 +219,33 @@ function render(times){
   document.getElementById("countdownCard").style.display="block";
   nextPrayer=getNextPrayer(times);
   startCountdown(nextPrayer[0],nextPrayer[1]);
+
+  // تحديث اسم المدينة في العدادات
+  document.getElementById("cityName").innerText = "المدينة: " + cityName;
+  updateLocalTime();
+  updateDailyCounters();
+}
+
+function updateLocalTime(){
+  const now = new Date();
+  document.getElementById("localTime").innerText = "الوقت المحلي: " + now.toLocaleTimeString();
+  setTimeout(updateLocalTime,1000);
+}
+
+// عدادات الصلوات اليومية
+function updateDailyCounters(){
+  if(!prayerTimes) return;
+  const now = new Date();
+  let passed=0;
+  const prayersList=[prayerTimes.Fajr, prayerTimes.Dhuhr, prayerTimes.Asr, prayerTimes.Maghrib, prayerTimes.Isha];
+  prayersList.forEach(t=>{
+    const [h,m]=t.split(":").map(Number);
+    const date=new Date();
+    date.setHours(h,m,0);
+    if(now>=date) passed++;
+  });
+  const remaining = 5 - passed;
+  document.getElementById("dailyCounters").innerText = `الصلوات المنتهية: ${passed} | المتبقية: ${remaining}`;
 }
 
 // تحديد الموقع تلقائيًا عند فتح الصفحة
@@ -219,7 +255,10 @@ function requestLocation(){
     userLng=pos.coords.longitude;
     fetch(`https://api.aladhan.com/v1/timings?latitude=${userLat}&longitude=${userLng}&method=4`)
       .then(r=>r.json())
-      .then(d=>render(d.data.timings));
+      .then(d=>{
+        cityName=d.data.meta.timezone || 'موقعك الحالي';
+        render(d.data.timings);
+      });
   },err=>{
     alert("يرجى تفعيل مشاركة الموقع لعرض مواقيت الصلاة بدقة 📍");
   });
@@ -240,6 +279,7 @@ function searchLocation(){
     .then(r=>r.json())
     .then(data=>{
       if(data.code!==200) return alert("لم يتم العثور على المدينة");
+      cityName=city;
       render(data.data.timings);
     })
     .catch(err=>{
@@ -249,7 +289,9 @@ function searchLocation(){
 }
 
 function showOption(cardId){
-  document.getElementById(cardId).style.display="block";
+  document.getElementById("homePage").style.display = "none";
+  document.getElementById("countersCard").style.display = "none";
+  document.getElementById(cardId).style.display = "block";
 }
 
 window.onload=requestLocation;
