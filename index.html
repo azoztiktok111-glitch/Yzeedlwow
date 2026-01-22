@@ -5,9 +5,6 @@
 <title>مواقيت الصلاة</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<!-- PWA -->
-<link rel="manifest" href="manifest.json">
-
 <!-- خط -->
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
 
@@ -22,7 +19,7 @@ body {
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
-  padding-bottom: 100px;
+  padding-bottom: 80px;
 }
 
 .app {
@@ -70,6 +67,14 @@ button {
   margin-top: 10px;
 }
 
+input[type="text"] {
+  padding: 8px;
+  border-radius: 8px;
+  border: none;
+  width: 80%;
+  margin-top: 10px;
+}
+
 .small-text { margin-top: 10px; font-size: 0.85rem; color: #9ca3af; }
 
 /* الشريط السفلي */
@@ -109,7 +114,6 @@ button {
   margin-bottom: 2px;
 }
 
-/* بطاقات اختيار الخيارات */
 .option-card {
   background: rgba(17, 24, 39, 0.95);
   border-radius: 18px;
@@ -120,28 +124,7 @@ button {
   backdrop-filter: blur(12px);
   box-shadow: 0 15px 30px rgba(0,0,0,0.35);
 }
-
-input[type="text"] {
-  padding: 8px;
-  border-radius: 8px;
-  border: none;
-  width: 80%;
-  margin-top: 10px;
-}
-
-/* سهم القبلة */
-#qiblaArrow {
-  width: 80px;
-  height: 80px;
-  margin: 10px auto 0;
-  transform-origin: 50% 50%;
-  transition: transform 0.5s ease;
-}
 </style>
-
-<!-- أيقونات -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
 </head>
 <body>
 
@@ -149,53 +132,34 @@ input[type="text"] {
 <h1>🕌 مواقيت الصلاة</h1>
 <div class="subtitle">حسب موقعك الحالي 📍</div>
 
-<div id="locationPrompt" class="card">
-<p>للحصول على مواقيت الصلاة الدقيقة، يرجى مشاركة موقعك 🌍</p>
-<button onclick="requestLocation()">📍 مشاركة الموقع</button>
-<p class="small-text">يمكنك إضافة هذا التطبيق إلى الشاشة الرئيسية لهاتفك للوصول السريع 📱</p>
-</div>
-
 <div class="card" id="prayers" style="display:none;"></div>
 
 <div class="card" id="countdownCard" style="display:none;">
   <div id="countdown">جاري حساب الصلاة القادمة…</div>
 </div>
 
-<button onclick="enableNotifications()">🔔 تفعيل تنبيه الأذان</button>
-
-<!-- بطاقات الخيارات -->
-<div id="qiblaCard" class="option-card">
-  <p>🧭 اتجاه القبلة:</p>
-  <img src="https://cdn-icons-png.flaticon.com/512/32/32195.png" id="qiblaArrow" alt="قبلة">
-  <p id="qiblaDegree">...</p>
-</div>
-
-<div id="countersCard" class="option-card">
+<!-- بطاقة العدادات مع البحث وتفعيل الإشعارات -->
+<div id="countersCard" class="option-card" style="display:block;">
   <p>📊 عدادات الصلاة اليومية</p>
-</div>
-
-<div id="searchCard" class="option-card">
-  <p>🔍 تحديد موقع آخر بالبحث</p>
-  <input type="text" placeholder="أدخل المدينة أو العنوان">
+  <button onclick="enableNotifications()">🔔 تفعيل تنبيه الأذان</button>
+  <p style="margin-top:15px;">🔍 البحث عن مدينة أخرى</p>
+  <input type="text" id="cityInput" placeholder="أدخل المدينة أو العنوان">
   <button onclick="searchLocation()">🔎 بحث</button>
 </div>
+
+<!-- شريط سفلي مبسط -->
+<div class="bottom-bar">
+  <button onclick="showOption('countersCard')"><i class="fas fa-chart-bar"></i>العدادات</button>
 </div>
 
-<!-- الشريط السفلي -->
-<div class="bottom-bar">
-  <button onclick="showOption('qiblaCard')"><i class="fas fa-compass"></i>قبلة</button>
-  <button onclick="showOption('countersCard')"><i class="fas fa-chart-bar"></i>عداد</button>
-  <button onclick="showOption('searchCard')"><i class="fas fa-map-marker-alt"></i>موقع</button>
-</div>
+<!-- أيقونات -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
 
 <script>
-let prayerTimes = null;
-let nextPrayer = null;
-let userLat = null;
-let userLng = null;
-
-const meccaLat = 21.4225;
-const meccaLng = 39.8262;
+let prayerTimes=null;
+let nextPrayer=null;
+let userLat=null;
+let userLng=null;
 
 function formatArabicTime(time24){
   let [h,m]=time24.split(":").map(Number);
@@ -223,7 +187,7 @@ function startCountdown(name,time){
     const target = new Date();
     target.setHours(h,m,0);
     if(target<now) target.setDate(target.getDate()+1);
-    const diff = Math.floor((target-now)/1000);
+    const diff=Math.floor((target-now)/1000);
     const hh=Math.floor(diff/3600);
     const mm=Math.floor((diff%3600)/60);
     const ss=diff%60;
@@ -242,56 +206,53 @@ function render(times){
   prayers.forEach(p=>{
     box.innerHTML+=`<div class="row"><span>${p[0]}</span><span class="time">${formatArabicTime(p[1])}</span></div>`;
   });
-  document.getElementById("locationPrompt").style.display="none";
   document.getElementById("prayers").style.display="block";
   document.getElementById("countdownCard").style.display="block";
-  calculateQiblaArrow();
   nextPrayer=getNextPrayer(times);
   startCountdown(nextPrayer[0],nextPrayer[1]);
 }
 
+// تحديد الموقع تلقائيًا عند فتح الصفحة
 function requestLocation(){
   navigator.geolocation.getCurrentPosition(pos=>{
     userLat=pos.coords.latitude;
     userLng=pos.coords.longitude;
     fetch(`https://api.aladhan.com/v1/timings?latitude=${userLat}&longitude=${userLng}&method=4`)
-    .then(r=>r.json())
-    .then(d=>render(d.data.timings));
-  }, err=>{
+      .then(r=>r.json())
+      .then(d=>render(d.data.timings));
+  },err=>{
     alert("يرجى تفعيل مشاركة الموقع لعرض مواقيت الصلاة بدقة 📍");
   });
 }
 
-function calculateQiblaArrow(){
-  if(userLat===null || userLng===null) return;
-  const lat1 = userLat*Math.PI/180;
-  const lon1 = userLng*Math.PI/180;
-  const lat2 = meccaLat*Math.PI/180;
-  const lon2 = meccaLng*Math.PI/180;
-  const y = Math.sin(lon2-lon1)*Math.cos(lat2);
-  const x = Math.cos(lat1)*Math.sin(lat2) - Math.sin(lat1)*Math.cos(lat2)*Math.cos(lon2-lon1);
-  let brng=Math.atan2(y,x)*180/Math.PI;
-  brng=(brng+360)%360;
-  document.getElementById("qiblaDegree").innerText = brng.toFixed(1)+"°";
-  document.getElementById("qiblaArrow").style.transform=`rotate(${brng}deg)`;
+// تفعيل إشعارات الأذان
+function enableNotifications(){
+  Notification.requestPermission().then(p=>{
+    if(p==="granted"){ alert("تم تفعيل تنبيه الأذان 🔔"); }
+  });
 }
 
-function enableNotifications(){
-  Notification.requestPermission().then(p=>{ if(p==="granted"){ alert("تم تفعيل تنبيه الأذان 🔔"); } });
+// البحث عن مدينة
+function searchLocation(){
+  const city=document.getElementById("cityInput").value;
+  if(!city) return alert("الرجاء إدخال اسم المدينة");
+  fetch(`https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(city)}&country=&method=4`)
+    .then(r=>r.json())
+    .then(data=>{
+      if(data.code!==200) return alert("لم يتم العثور على المدينة");
+      render(data.data.timings);
+    })
+    .catch(err=>{
+      alert("حدث خطأ أثناء البحث عن المدينة");
+      console.error(err);
+    });
 }
 
 function showOption(cardId){
-  const cards=["qiblaCard","countersCard","searchCard"];
-  cards.forEach(id=>{ document.getElementById(id).style.display=id===cardId?"block":"none"; });
+  document.getElementById(cardId).style.display="block";
 }
 
-function searchLocation(){
-  const city=document.querySelector("#searchCard input").value;
-  if(city) alert("تم البحث عن موقع: "+city);
-}
-
-if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js'); }
+window.onload=requestLocation;
 </script>
-
 </body>
 </html>
