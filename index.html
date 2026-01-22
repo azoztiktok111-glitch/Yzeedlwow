@@ -4,11 +4,9 @@
   <meta charset="UTF-8">
   <title>مواقيت الصلاة</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#020617">
 
-  <!-- PWA -->
   <link rel="manifest" href="manifest.json">
-
-  <!-- خط -->
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
 
   <style>
@@ -18,32 +16,22 @@
       background: radial-gradient(circle at top, #0f172a, #020617);
       color: #fff;
       min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
     }
 
     .app {
-      width: 100%;
       max-width: 420px;
+      margin: auto;
       padding: 20px;
       text-align: center;
     }
 
-    h1 {
-      margin-bottom: 5px;
-    }
-
-    .subtitle {
-      color: #9ca3af;
-      margin-bottom: 20px;
-    }
+    h1 { margin-bottom: 5px; }
+    .subtitle { color: #9ca3af; margin-bottom: 20px; }
 
     .card {
-      background: rgba(17, 24, 39, 0.85);
+      background: rgba(17, 24, 39, 0.9);
       border-radius: 18px;
       padding: 18px;
-      backdrop-filter: blur(12px);
       box-shadow: 0 20px 40px rgba(0,0,0,.35);
       margin-bottom: 15px;
     }
@@ -55,9 +43,7 @@
       border-bottom: 1px solid #1f2937;
     }
 
-    .row:last-child {
-      border-bottom: none;
-    }
+    .row:last-child { border-bottom: none; }
 
     .time {
       color: #38bdf8;
@@ -65,28 +51,53 @@
     }
 
     #countdown {
-      font-size: 0.95rem;
       color: #facc15;
-      margin-top: 10px;
+      font-size: .95rem;
     }
 
     button {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: none;
       background: #38bdf8;
       color: #020617;
-      border: none;
-      border-radius: 12px;
-      padding: 12px;
-      width: 100%;
       font-size: 1rem;
       font-weight: 700;
       cursor: pointer;
-      margin-top: 10px;
+    }
+
+    /* شاشة إجبار الإضافة */
+    #iosPrompt {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(2,6,23,.97);
+      z-index: 9999;
+      text-align: center;
+      padding: 30px;
     }
   </style>
 </head>
 <body>
 
-<div class="app">
+<!-- شاشة الإضافة -->
+<div id="iosPrompt">
+  <h2 style="margin-top:40%">📱 أضف التطبيق</h2>
+  <p style="color:#9ca3af; line-height:1.8">
+    هذا الموقع يعمل كتطبيق فقط<br>
+    للحصول على تنبيهات الأذان
+  </p>
+  <p style="margin-top:15px">
+    اضغط زر <b>المشاركة ⬆️</b><br>
+    ثم <b>إضافة إلى الشاشة الرئيسية</b>
+  </p>
+  <p style="margin-top:25px; color:#38bdf8">
+    بعد الإضافة افتحه من الشاشة الرئيسية
+  </p>
+</div>
+
+<div class="app" id="app">
   <h1>🕌 مواقيت الصلاة</h1>
   <div class="subtitle">حسب موقعك الحالي 📍</div>
 
@@ -100,106 +111,28 @@
 </div>
 
 <script>
-  let prayerTimes = null;
-  let nextPrayer = null;
+/* ==== منع العمل إلا كتطبيق ==== */
+function isIos() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent);
+}
+function isStandalone() {
+  return window.navigator.standalone === true;
+}
+if (isIos() && !isStandalone()) {
+  document.getElementById("iosPrompt").style.display = "block";
+  document.getElementById("app").style.display = "none";
+}
 
-  function formatArabicTime(time24) {
-    let [h, m] = time24.split(":").map(Number);
-    h = h % 12 || 12;
-    return `${h}:${m.toString().padStart(2, "0")}`;
-  }
+/* ==== منطق التطبيق ==== */
+function formatTime(t) {
+  let [h,m] = t.split(":").map(Number);
+  h = h % 12 || 12;
+  return `${h}:${m.toString().padStart(2,"0")}`;
+}
+function sec(t){ let [h,m]=t.split(":"); return h*3600+m*60; }
 
-  function seconds(t) {
-    const [h, m] = t.split(":").map(Number);
-    return h * 3600 + m * 60;
-  }
-
-  function getNextPrayer(times) {
-    const now = new Date();
-    const nowSec = now.getHours() * 3600 + now.getMinutes() * 60;
-
-    const list = [
-      ["الفجر", times.Fajr],
-      ["الظهر", times.Dhuhr],
-      ["العصر", times.Asr],
-      ["المغرب", times.Maghrib],
-      ["العشاء", times.Isha]
-    ];
-
-    for (let p of list) {
-      if (seconds(p[1]) > nowSec) return p;
-    }
-    return ["الفجر", times.Fajr];
-  }
-
-  function startCountdown(name, time) {
-    setInterval(() => {
-      const now = new Date();
-      const [h, m] = time.split(":").map(Number);
-
-      const target = new Date();
-      target.setHours(h, m, 0);
-      if (target < now) target.setDate(target.getDate() + 1);
-
-      const diff = Math.floor((target - now) / 1000);
-      const hh = Math.floor(diff / 3600);
-      const mm = Math.floor((diff % 3600) / 60);
-      const ss = diff % 60;
-
-      document.getElementById("countdown").innerText =
-        `الصلاة القادمة: ${name} بعد ${hh}:${mm.toString().padStart(2,"0")}:${ss.toString().padStart(2,"0")}`;
-
-      if (diff === 0 && Notification.permission === "granted") {
-        new Notification("🕌 حان الآن وقت صلاة " + name);
-      }
-    }, 1000);
-  }
-
-  function render(times) {
-    prayerTimes = times;
-    const prayers = [
-      ["الفجر", times.Fajr],
-      ["الشروق", times.Sunrise],
-      ["الظهر", times.Dhuhr],
-      ["العصر", times.Asr],
-      ["المغرب", times.Maghrib],
-      ["العشاء", times.Isha]
-    ];
-
-    const box = document.getElementById("prayers");
-    box.innerHTML = "";
-
-    prayers.forEach(p => {
-      box.innerHTML += `
-        <div class="row">
-          <span>${p[0]}</span>
-          <span class="time">${formatArabicTime(p[1])}</span>
-        </div>
-      `;
-    });
-
-    nextPrayer = getNextPrayer(times);
-    startCountdown(nextPrayer[0], nextPrayer[1]);
-  }
-
-  navigator.geolocation.getCurrentPosition(pos => {
-    fetch(`https://api.aladhan.com/v1/timings?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&method=4`)
-      .then(r => r.json())
-      .then(d => render(d.data.timings));
-  });
-
-  function enableNotifications() {
-    Notification.requestPermission().then(p => {
-      if (p === "granted") {
-        alert("تم تفعيل تنبيه الأذان 🔔");
-      }
-    });
-  }
-
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js');
-  }
-</script>
-
-</body>
-</html>
+function nextPrayer(times){
+  const now = new Date();
+  const nowSec = now.getHours()*3600 + now.getMinutes()*60;
+  const list = [
+    ["الفجر",
