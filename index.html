@@ -1,230 +1,296 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <title>مواقيت الصلاة</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<title>مواقيت الصلاة</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.json">
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
 
-  <!-- خط -->
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+<!-- خط -->
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
 
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Cairo', sans-serif;
-      background: radial-gradient(circle at top, #0f172a, #020617);
-      color: #fff;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
+<style>
+body {
+  margin: 0;
+  font-family: 'Cairo', sans-serif;
+  background: radial-gradient(circle at top, #0f172a, #020617);
+  color: #fff;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  padding-bottom: 100px;
+}
 
-    .app {
-      width: 100%;
-      max-width: 420px;
-      padding: 20px;
-      text-align: center;
-    }
+.app {
+  width: 100%;
+  max-width: 420px;
+  padding: 20px;
+  text-align: center;
+}
 
-    h1 {
-      margin-bottom: 5px;
-    }
+h1 { margin-bottom: 5px; }
+.subtitle { color: #9ca3af; margin-bottom: 20px; }
 
-    .subtitle {
-      color: #9ca3af;
-      margin-bottom: 20px;
-    }
+.card {
+  background: rgba(17, 24, 39, 0.85);
+  border-radius: 18px;
+  padding: 18px;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 20px 40px rgba(0,0,0,.35);
+  margin-bottom: 15px;
+}
 
-    .card {
-      background: rgba(17, 24, 39, 0.85);
-      border-radius: 18px;
-      padding: 18px;
-      backdrop-filter: blur(12px);
-      box-shadow: 0 20px 40px rgba(0,0,0,.35);
-      margin-bottom: 15px;
-    }
+.row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #1f2937;
+}
 
-    .row {
-      display: flex;
-      justify-content: space-between;
-      padding: 10px 0;
-      border-bottom: 1px solid #1f2937;
-    }
+.row:last-child { border-bottom: none; }
 
-    .row:last-child {
-      border-bottom: none;
-    }
+.time { color: #38bdf8; font-weight: 700; }
 
-    .time {
-      color: #38bdf8;
-      font-weight: 700;
-    }
+#countdown { font-size: 0.95rem; color: #facc15; margin-top: 10px; }
 
-    #countdown {
-      font-size: 0.95rem;
-      color: #facc15;
-      margin-top: 10px;
-    }
+button {
+  background: #38bdf8;
+  color: #020617;
+  border: none;
+  border-radius: 12px;
+  padding: 12px;
+  width: 100%;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 10px;
+}
 
-    button {
-      background: #38bdf8;
-      color: #020617;
-      border: none;
-      border-radius: 12px;
-      padding: 12px;
-      width: 100%;
-      font-size: 1rem;
-      font-weight: 700;
-      cursor: pointer;
-      margin-top: 10px;
-    }
+.small-text { margin-top: 10px; font-size: 0.85rem; color: #9ca3af; }
 
-    /* نص صغير تحت زر الموقع */
-    .small-text {
-      margin-top: 10px;
-      font-size: 0.85rem;
-      color: #9ca3af;
-    }
-  </style>
+/* الشريط السفلي */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  max-width: 420px;
+  height: 60px;
+  background: rgba(17,24,39,0.95);
+  backdrop-filter: blur(12px);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  box-shadow: 0 -5px 15px rgba(0,0,0,0.3);
+  z-index: 100;
+  border-top-left-radius: 18px;
+  border-top-right-radius: 18px;
+}
+
+.bottom-bar button {
+  background: none;
+  border: none;
+  color: #9ca3af;
+  font-size: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+.bottom-bar button.active, .bottom-bar button:hover { color: #38bdf8; }
+
+.bottom-bar button i {
+  font-size: 1.4rem;
+  margin-bottom: 2px;
+}
+
+/* بطاقات اختيار الخيارات */
+.option-card {
+  background: rgba(17, 24, 39, 0.95);
+  border-radius: 18px;
+  padding: 15px;
+  margin-top: 10px;
+  text-align: center;
+  display: none;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 15px 30px rgba(0,0,0,0.35);
+}
+
+input[type="text"] {
+  padding: 8px;
+  border-radius: 8px;
+  border: none;
+  width: 80%;
+  margin-top: 10px;
+}
+
+/* سهم القبلة */
+#qiblaArrow {
+  width: 80px;
+  height: 80px;
+  margin: 10px auto 0;
+  transform-origin: 50% 50%;
+  transition: transform 0.5s ease;
+}
+</style>
+
+<!-- أيقونات -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
 </head>
 <body>
 
 <div class="app">
-  <h1>🕌 مواقيت الصلاة</h1>
-  <div class="subtitle">حسب موقعك الحالي</div>
+<h1>🕌 مواقيت الصلاة</h1>
+<div class="subtitle">حسب موقعك الحالي 📍</div>
 
-  <!-- طلب مشاركة الموقع -->
-  <div id="locationPrompt" class="card">
-    <p>للحصول على مواقيت الصلاة، يرجى مشاركة موقعك</p>
-    <button onclick="requestLocation()">مشاركة الموقع</button>
-    <p class="small-text">يمكنك إضافة هذا التطبيق إلى الشاشة الرئيسية لهاتفك للوصول السريع</p>
-  </div>
+<div id="locationPrompt" class="card">
+<p>للحصول على مواقيت الصلاة الدقيقة، يرجى مشاركة موقعك 🌍</p>
+<button onclick="requestLocation()">📍 مشاركة الموقع</button>
+<p class="small-text">يمكنك إضافة هذا التطبيق إلى الشاشة الرئيسية لهاتفك للوصول السريع 📱</p>
+</div>
 
-  <!-- جدول الصلاة -->
-  <div class="card" id="prayers" style="display:none;"></div>
+<div class="card" id="prayers" style="display:none;"></div>
 
-  <!-- عد تنازلي -->
-  <div class="card" id="countdownCard" style="display:none;">
-    <div id="countdown">جاري حساب الصلاة القادمة…</div>
-  </div>
+<div class="card" id="countdownCard" style="display:none;">
+  <div id="countdown">جاري حساب الصلاة القادمة…</div>
+</div>
 
-  <!-- تنبيه الأذان -->
-  <button onclick="enableNotifications()">🔔 تفعيل تنبيه الأذان</button>
+<button onclick="enableNotifications()">🔔 تفعيل تنبيه الأذان</button>
+
+<!-- بطاقات الخيارات -->
+<div id="qiblaCard" class="option-card">
+  <p>🧭 اتجاه القبلة:</p>
+  <img src="https://cdn-icons-png.flaticon.com/512/32/32195.png" id="qiblaArrow" alt="قبلة">
+  <p id="qiblaDegree">...</p>
+</div>
+
+<div id="countersCard" class="option-card">
+  <p>📊 عدادات الصلاة اليومية</p>
+</div>
+
+<div id="searchCard" class="option-card">
+  <p>🔍 تحديد موقع آخر بالبحث</p>
+  <input type="text" placeholder="أدخل المدينة أو العنوان">
+  <button onclick="searchLocation()">🔎 بحث</button>
+</div>
+</div>
+
+<!-- الشريط السفلي -->
+<div class="bottom-bar">
+  <button onclick="showOption('qiblaCard')"><i class="fas fa-compass"></i>قبلة</button>
+  <button onclick="showOption('countersCard')"><i class="fas fa-chart-bar"></i>عداد</button>
+  <button onclick="showOption('searchCard')"><i class="fas fa-map-marker-alt"></i>موقع</button>
 </div>
 
 <script>
-  let prayerTimes = null;
-  let nextPrayer = null;
+let prayerTimes = null;
+let nextPrayer = null;
+let userLat = null;
+let userLng = null;
 
-  function formatArabicTime(time24) {
-    let [h, m] = time24.split(":").map(Number);
-    h = h % 12 || 12;
-    return `${h}:${m.toString().padStart(2, "0")}`;
-  }
+const meccaLat = 21.4225;
+const meccaLng = 39.8262;
 
-  function seconds(t) {
-    const [h, m] = t.split(":").map(Number);
-    return h * 3600 + m * 60;
-  }
+function formatArabicTime(time24){
+  let [h,m]=time24.split(":").map(Number);
+  h=h%12||12;
+  return `${h}:${m.toString().padStart(2,"0")}`;
+}
 
-  function getNextPrayer(times) {
+function seconds(t){
+  const [h,m]=t.split(":").map(Number);
+  return h*3600 + m*60;
+}
+
+function getNextPrayer(times){
+  const now=new Date();
+  const nowSec = now.getHours()*3600 + now.getMinutes()*60;
+  const list = [["الفجر", times.Fajr], ["الظهر", times.Dhuhr], ["العصر", times.Asr], ["المغرب", times.Maghrib], ["العشاء", times.Isha]];
+  for(let p of list){ if(seconds(p[1])>nowSec) return p; }
+  return ["الفجر", times.Fajr];
+}
+
+function startCountdown(name,time){
+  setInterval(()=>{
     const now = new Date();
-    const nowSec = now.getHours() * 3600 + now.getMinutes() * 60;
-
-    const list = [
-      ["الفجر", times.Fajr],
-      ["الظهر", times.Dhuhr],
-      ["العصر", times.Asr],
-      ["المغرب", times.Maghrib],
-      ["العشاء", times.Isha]
-    ];
-
-    for (let p of list) {
-      if (seconds(p[1]) > nowSec) return p;
+    const [h,m]=time.split(":").map(Number);
+    const target = new Date();
+    target.setHours(h,m,0);
+    if(target<now) target.setDate(target.getDate()+1);
+    const diff = Math.floor((target-now)/1000);
+    const hh=Math.floor(diff/3600);
+    const mm=Math.floor((diff%3600)/60);
+    const ss=diff%60;
+    document.getElementById("countdown").innerText=`الصلاة القادمة: ${name} بعد ${hh}:${mm.toString().padStart(2,"0")}:${ss.toString().padStart(2,"0")}`;
+    if(diff===0 && Notification.permission==="granted"){
+      new Notification("🕌 حان الآن وقت صلاة "+name);
     }
-    return ["الفجر", times.Fajr];
-  }
+  },1000);
+}
 
-  function startCountdown(name, time) {
-    setInterval(() => {
-      const now = new Date();
-      const [h, m] = time.split(":").map(Number);
+function render(times){
+  prayerTimes=times;
+  const prayers=[["الفجر", times.Fajr], ["الشروق", times.Sunrise], ["الظهر", times.Dhuhr], ["العصر", times.Asr], ["المغرب", times.Maghrib], ["العشاء", times.Isha]];
+  const box=document.getElementById("prayers");
+  box.innerHTML="";
+  prayers.forEach(p=>{
+    box.innerHTML+=`<div class="row"><span>${p[0]}</span><span class="time">${formatArabicTime(p[1])}</span></div>`;
+  });
+  document.getElementById("locationPrompt").style.display="none";
+  document.getElementById("prayers").style.display="block";
+  document.getElementById("countdownCard").style.display="block";
+  calculateQiblaArrow();
+  nextPrayer=getNextPrayer(times);
+  startCountdown(nextPrayer[0],nextPrayer[1]);
+}
 
-      const target = new Date();
-      target.setHours(h, m, 0);
-      if (target < now) target.setDate(target.getDate() + 1);
+function requestLocation(){
+  navigator.geolocation.getCurrentPosition(pos=>{
+    userLat=pos.coords.latitude;
+    userLng=pos.coords.longitude;
+    fetch(`https://api.aladhan.com/v1/timings?latitude=${userLat}&longitude=${userLng}&method=4`)
+    .then(r=>r.json())
+    .then(d=>render(d.data.timings));
+  }, err=>{
+    alert("يرجى تفعيل مشاركة الموقع لعرض مواقيت الصلاة بدقة 📍");
+  });
+}
 
-      const diff = Math.floor((target - now) / 1000);
-      const hh = Math.floor(diff / 3600);
-      const mm = Math.floor((diff % 3600) / 60);
-      const ss = diff % 60;
+function calculateQiblaArrow(){
+  if(userLat===null || userLng===null) return;
+  const lat1 = userLat*Math.PI/180;
+  const lon1 = userLng*Math.PI/180;
+  const lat2 = meccaLat*Math.PI/180;
+  const lon2 = meccaLng*Math.PI/180;
+  const y = Math.sin(lon2-lon1)*Math.cos(lat2);
+  const x = Math.cos(lat1)*Math.sin(lat2) - Math.sin(lat1)*Math.cos(lat2)*Math.cos(lon2-lon1);
+  let brng=Math.atan2(y,x)*180/Math.PI;
+  brng=(brng+360)%360;
+  document.getElementById("qiblaDegree").innerText = brng.toFixed(1)+"°";
+  document.getElementById("qiblaArrow").style.transform=`rotate(${brng}deg)`;
+}
 
-      document.getElementById("countdown").innerText =
-        `الصلاة القادمة: ${name} بعد ${hh}:${mm.toString().padStart(2,"0")}:${ss.toString().padStart(2,"0")}`;
+function enableNotifications(){
+  Notification.requestPermission().then(p=>{ if(p==="granted"){ alert("تم تفعيل تنبيه الأذان 🔔"); } });
+}
 
-      if (diff === 0 && Notification.permission === "granted") {
-        new Notification("🕌 حان الآن وقت صلاة " + name);
-      }
-    }, 1000);
-  }
+function showOption(cardId){
+  const cards=["qiblaCard","countersCard","searchCard"];
+  cards.forEach(id=>{ document.getElementById(id).style.display=id===cardId?"block":"none"; });
+}
 
-  function render(times) {
-    prayerTimes = times;
-    const prayers = [
-      ["الفجر", times.Fajr],
-      ["الشروق", times.Sunrise],
-      ["الظهر", times.Dhuhr],
-      ["العصر", times.Asr],
-      ["المغرب", times.Maghrib],
-      ["العشاء", times.Isha]
-    ];
+function searchLocation(){
+  const city=document.querySelector("#searchCard input").value;
+  if(city) alert("تم البحث عن موقع: "+city);
+}
 
-    const box = document.getElementById("prayers");
-    box.innerHTML = "";
-
-    prayers.forEach(p => {
-      box.innerHTML += `
-        <div class="row">
-          <span>${p[0]}</span>
-          <span class="time">${formatArabicTime(p[1])}</span>
-        </div>
-      `;
-    });
-
-    // إخفاء طلب الموقع وإظهار البطاقات
-    document.getElementById("locationPrompt").style.display = "none";
-    document.getElementById("prayers").style.display = "block";
-    document.getElementById("countdownCard").style.display = "block";
-
-    nextPrayer = getNextPrayer(times);
-    startCountdown(nextPrayer[0], nextPrayer[1]);
-  }
-
-  function requestLocation() {
-    navigator.geolocation.getCurrentPosition(pos => {
-      fetch(`https://api.aladhan.com/v1/timings?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&method=4`)
-        .then(r => r.json())
-        .then(d => render(d.data.timings));
-    }, err => {
-      alert("يرجى إضافة التطبيق إلى الشاشة الرئيسية لتشغيل التطبيق");
-    });
-  }
-
-  function enableNotifications() {
-    Notification.requestPermission().then(p => {
-      if (p === "granted") {
-        alert("تم تفعيل تنبيه الأذان 🔔");
-      }
-    });
-  }
-
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js');
-  }
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js'); }
 </script>
 
 </body>
