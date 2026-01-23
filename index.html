@@ -57,7 +57,6 @@ h1 { text-align:center; margin-top:0; font-weight:600; font-size:20px; }
 .value { text-align:center; font-size:13px; margin-bottom:12px; }
 .toggle { display:flex; justify-content:space-between; align-items:center; background: rgba(255,255,255,.05); border-radius:10px; padding:10px 12px; margin-top:10px; font-size:12px; }
 .toggle input { width:36px; height:18px; cursor:pointer; }
-.settingsBtnTest { background: var(--accent); color:#fff; border:none; border-radius:8px; padding:8px 12px; margin-top:8px; cursor:pointer; font-size:13px; width:100%; }
 </style>
 </head>
 <body>
@@ -91,7 +90,7 @@ h1 { text-align:center; margin-top:0; font-weight:600; font-size:20px; }
   <div class="tasbih">
     <div class="count" id="tasbihCount">0</div>
     <button id="tasbihBtn">تسبيح</button>
-    <button id="resetTasbih">⭮ إعادة</button>
+    <button id="resetTasbih">إعادة</button>
   </div>
 </div>
 
@@ -103,9 +102,9 @@ h1 { text-align:center; margin-top:0; font-weight:600; font-size:20px; }
 </div>
 
 <div class="bottom-nav">
-  <button onclick="showPage('homePage')" id="navHome">🏠 الصلاة</button>
-  <button onclick="showPage('tasbihPage')" id="navTasbih">✋ التسبيح</button>
-  <button onclick="showPage('adhkarPage')" id="navAdhkar">📿 الأذكار</button>
+  <button onclick="showPage('homePage')" id="navHome">الصلاة</button>
+  <button onclick="showPage('tasbihPage')" id="navTasbih">التسبيح</button>
+  <button onclick="showPage('adhkarPage')" id="navAdhkar">الأذكار</button>
 </div>
 
 <div class="modal" id="settings">
@@ -120,7 +119,6 @@ h1 { text-align:center; margin-top:0; font-weight:600; font-size:20px; }
       <span>تفعيل الإشعارات</span>
       <input type="checkbox" id="notifToggle">
     </div>
-    <button class="settingsBtnTest" onclick="testNotification()">تجربة الإشعارات</button>
     <div class="close" onclick="closeSettings()">إغلاق</div>
   </div>
 </div>
@@ -143,9 +141,6 @@ let is24h = localStorage.getItem("timeFormat")==="24";
 function formatTime(time){ let [h,m]=time.split(":").map(Number); if(is24h) return `${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}`; const period=h>=12?"م":"ص"; h=h%12||12; return `${h}:${m.toString().padStart(2,"0")} ${period}`; }
 function toggleTime(){ is24h=document.getElementById("timeFormat").checked; localStorage.setItem("timeFormat",is24h?"24":"12"); document.querySelectorAll(".ptime").forEach(el=>{ el.innerText=formatTime(el.dataset.time); }); }
 
-/* التاريخ */
-function updateDates(){ const now=new Date(); document.getElementById("gregorian").innerText=now.toLocaleDateString("en-US",{ weekday:"long", day:"numeric", month:"long"}); document.getElementById("hijri").innerText=now.toLocaleDateString("ar-SA-u-ca-islamic",{ day:"numeric", month:"long", year:"numeric"}); }
-
 /* الصفحات */
 function showPage(id){ document.querySelectorAll(".content-page").forEach(p=>p.classList.remove("active")); document.getElementById(id).classList.add("active"); document.querySelectorAll(".bottom-nav button").forEach(b=>b.classList.remove("active")); document.querySelector(`#nav${id.charAt(0).toUpperCase()+id.slice(1)}`).classList.add("active"); }
 
@@ -155,7 +150,7 @@ function openSettings(){ openSound.play(); settings.classList.add("show"); }
 function closeSettings(){ settings.classList.remove("show"); }
 
 /* تحميل */
-updateDates(); setInterval(updateDates,60000); document.addEventListener("DOMContentLoaded",()=>{ document.getElementById("timeFormat").checked=is24h; });
+document.addEventListener("DOMContentLoaded",()=>{ document.getElementById("timeFormat").checked=is24h; });
 
 /* ====== تسبيح ====== */
 let tasbihCount = parseInt(localStorage.getItem("tasbihCount")) || 0;
@@ -206,21 +201,27 @@ function updateCountdown(nextTime){
   },1000);
 }
 
-/* ====== جلب الموقع وأوقات الصلاة ====== */
+/* ====== جلب الموقع وأوقات الصلاة + التاريخ ====== */
 navigator.geolocation.getCurrentPosition(pos=>{
   const {latitude,longitude}=pos.coords;
   fetch(`https://api.aladhan.com/v1/timings?latitude=${latitude}&longitude=${longitude}&method=4`)
-    .then(r=>r.json())
-    .then(d=>{
-      window.prayerTimesData = d.data.timings;
-      updateNextPrayerText(window.prayerTimesData);
-      const prayers={"Fajr":"الفجر","Dhuhr":"الظهر","Asr":"العصر","Maghrib":"المغرب","Isha":"العشاء"};
-      const c=document.getElementById("times"); c.innerHTML="";
-      for(let p in prayers){ const t=window.prayerTimesData[p]; c.innerHTML+=`<div class="time"><span>${prayers[p]}</span><span class="ptime" data-time="${t}">${formatTime(t)}</span></div>`; }
-
-      // تغيير ألوان حسب الصلاة القادمة أو الشروق
-      const next=getNextPrayer(window.prayerTimesData);
-      const theme=prayerThemes[next.name]; if(theme){ document.documentElement.style.setProperty("--bg-main",theme.bg); document.documentElement.style.setProperty("--accent",theme.accent); }
+    .then(r => r.json())
+    .then(data => {
+      // التاريخ الميلادي
+      const gregorian = data.data.date.gregorian;
+      document.getElementById("gregorian").innerText = `${gregorian.weekday.en}, ${gregorian.day} ${gregorian.month.en} ${gregorian.year}`;
+      // التاريخ الهجري
+      const hijri = data.data.date.hijri;
+      document.getElementById("hijri").innerText = `${hijri.day} ${hijri.month.ar} ${hijri.year}`;
+      // أوقات الصلاة
+      const times = data.data.timings;
+      const c = document.getElementById("times");
+      c.innerHTML = "";
+      const prayers = {"Fajr":"الفجر","Dhuhr":"الظهر","Asr":"العصر","Maghrib":"المغرب","Isha":"العشاء"};
+      for (let p in prayers){ const t=times[p]; c.innerHTML += `<div class="time"><span>${prayers[p]}</span><span class="ptime" data-time="${t}">${formatTime(t)}</span></div>`; }
+      window.prayerTimesData = times;
+      updateNextPrayerText(times);
+      setInterval(()=>updateNextPrayerText(times),1000);
 
       // المدينة
       fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=ar`)
@@ -228,16 +229,19 @@ navigator.geolocation.getCurrentPosition(pos=>{
     });
 });
 
+/* ====== ألوان ديناميكية حسب الصلاة القادمة ====== */
+setInterval(()=>{
+  if(!window.prayerTimesData) return;
+  let nextName = document.getElementById("nextPrayerName").innerText;
+  let key = {"الفجر":"Fajr","الظهر":"Dhuhr","العصر":"Asr","المغرب":"Maghrib","العشاء":"Isha"}[nextName];
+  if(key){ document.documentElement.style.setProperty("--bg-main",prayerThemes[key].bg); document.documentElement.style.setProperty("--accent",prayerThemes[key].accent); }
+},5000);
+
 /* ====== إشعارات ====== */
-function testNotification(){
-  if(Notification.permission!=="granted") Notification.requestPermission();
-  if(Notification.permission==="granted"){
-    new Notification("تجربة الإشعارات","هذا تنبيه تجريبي!");
-  }
-}
-document.getElementById("notifToggle").addEventListener("change",e=>{
+document.getElementById("notifToggle").addEventListener("change", e => {
   if(e.target.checked){ Notification.requestPermission(); }
 });
+
 </script>
 </body>
 </html>
