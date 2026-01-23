@@ -2,11 +2,9 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>مواقيت الصلاة + تسبيح وأذكار</title>
+<title>مواقيت الصلاة + تسبيح وأذكار + مساجد</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-<!-- Manifest PWA -->
 <link rel="manifest" href="manifest.json">
 
 <style>
@@ -50,6 +48,10 @@ h1 { text-align:center; margin-top:0; font-weight:600; font-size:20px; }
 
 /* صفحة الأذكار */
 .adhkarText { white-space:normal; font-size:14px; color:#fff; line-height:1.6; margin-top:10px; }
+
+/* صفحة البحث عن المساجد */
+.map-container { width:100%; height:400px; border-radius:16px; overflow:hidden; margin-top:20px; }
+.map-message { text-align:center; margin-top:20px; opacity:.7; }
 
 /* Modal الإعدادات */
 .modal { position: fixed; inset:0; background:rgba(0,0,0,.7); opacity:0; pointer-events:none; display:flex; justify-content:center; align-items:center; transition:opacity .35s ease; z-index:30; }
@@ -105,16 +107,23 @@ h1 { text-align:center; margin-top:0; font-weight:600; font-size:20px; }
   </div>
 </div>
 
+<div class="content-page" id="mosquePage">
+  <h2>البحث عن مسجد</h2>
+  <div class="map-message" id="mapMessage">جارٍ تحديد الموقع...</div>
+  <div class="map-container" id="map"></div>
+</div>
+
 <div class="bottom-nav">
-  <button onclick="showPage('homePage')" id="navHome">الصلاة</button>
+  <button onclick="showPage('homePage')" id="navHome" class="active">الصلاة</button>
   <button onclick="showPage('tasbihPage')" id="navTasbih">التسبيح</button>
   <button onclick="showPage('adhkarPage')" id="navAdhkar">الأذكار</button>
+  <button onclick="showPage('mosquePage')" id="navMosque">البحث عن مسجد</button>
 </div>
 
 <div class="modal" id="settings">
   <div class="modal-content">
     <h3>الإعدادات</h3>
-    <div class="version">v1.5.2</div>
+    <div class="version">v1.5.3</div>
     <div class="toggle">
       <span>تنسيق الوقت 24 ساعة</span>
       <input type="checkbox" id="timeFormat" onchange="toggleTime()">
@@ -127,6 +136,7 @@ h1 { text-align:center; margin-top:0; font-weight:600; font-size:20px; }
   </div>
 </div>
 
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyACtFW3zuoyssiCj2mDfGkaaOZoGd0pMpg&libraries=places"></script>
 <script>
 // الصوت
 const openSound = new Audio("https://www.myinstants.com/media/sounds/click.mp3");
@@ -146,7 +156,13 @@ function formatTime(time){ let [h,m]=time.split(":").map(Number); if(is24h) retu
 function toggleTime(){ is24h=document.getElementById("timeFormat").checked; localStorage.setItem("timeFormat",is24h?"24":"12"); document.querySelectorAll(".ptime").forEach(el=>{ el.innerText=formatTime(el.dataset.time); }); }
 
 // الصفحات
-function showPage(id){ document.querySelectorAll(".content-page").forEach(p=>p.classList.remove("active")); document.getElementById(id).classList.add("active"); document.querySelectorAll(".bottom-nav button").forEach(b=>b.classList.remove("active")); document.querySelector(`#nav${id.charAt(0).toUpperCase()+id.slice(1)}`).classList.add("active"); }
+function showPage(id){
+  document.querySelectorAll(".content-page").forEach(p=>p.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  document.querySelectorAll(".bottom-nav button").forEach(b=>b.classList.remove("active"));
+  document.querySelector(`#nav${id.charAt(0).toUpperCase()+id.slice(1)}`).classList.add("active");
+  if(id==='mosquePage') initMap();
+}
 
 // إعدادات
 const settings=document.getElementById("settings");
@@ -156,8 +172,6 @@ function closeSettings(){ settings.classList.remove("show"); }
 // تحميل DOM
 document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("timeFormat").checked = is24h;
-
-  // حالة الإشعارات محفوظة
   const notifSaved = localStorage.getItem("notifEnabled") === "true";
   document.getElementById("notifToggle").checked = notifSaved;
   if(notifSaved && Notification.permission !== "granted"){
@@ -247,8 +261,22 @@ navigator.geolocation.getCurrentPosition(pos=>{
       setInterval(()=>updateNextPrayerTime(times),60000);
     });
 
-  fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=ar`)
-    .then(r=>r.json()).then(d=>{ document.getElementById("city").innerText=`${d.city||d.locality}, ${d.countryName}`; });
+  // أقرب المساجد
+  initMap = function(){
+    const mapMessage = document.getElementById("mapMessage");
+    mapMessage.innerText = "جارٍ تحديد الموقع...";
+    const mapEl = document.getElementById("map");
+    const map = new google.maps.Map(mapEl,{center:{lat:latitude,lng:longitude},zoom:15});
+    const service = new google.maps.places.PlacesService(map);
+    service.nearbySearch({location:{lat:latitude,lng:longitude},radius:2000,type:['mosque']}, (results,status)=>{
+      mapMessage.innerText="";
+      if(status === google.maps.places.PlacesServiceStatus.OK){
+        results.forEach(place=>{
+          new google.maps.Marker({position:place.geometry.location,map:map,title:place.name});
+        });
+      } else mapMessage.innerText = "لا يوجد مساجد قريبة";
+    });
+  };
 });
 
 // التاريخ هجري وميلادي
