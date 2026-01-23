@@ -95,7 +95,7 @@ h1 { text-align:center; margin-top:0; font-weight:600; font-size:20px; }
   <div class="tasbih">
     <div class="count" id="tasbihCount">0</div>
     <button id="tasbihBtn">تسبيح</button>
-    <button id="resetTasbih">⭮ إعادة</button>
+    <button id="resetTasbih">إعادة</button>
   </div>
 </div>
 
@@ -196,9 +196,9 @@ setInterval(()=>{ currentAdhkar = (currentAdhkar+1)%adhkarList.length; adhkarTex
 
 /* ====== المناسبات ====== */
 const events = [
-  {name:"بداية رمضان", date:"2026-03-10"},
-  {name:"عيد الفطر", date:"2026-04-09"},
-  {name:"عيد الأضحى", date:"2026-06-17"}
+  {name:"بداية رمضان", date:"2026-2-18"},
+  {name:"عيد الفطر", date:"2026-3-20"},
+  {name:"عيد الأضحى", date:"2026-5-17"}
 ];
 function updateEvents(){
   const list = document.getElementById("eventsList");
