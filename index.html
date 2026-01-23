@@ -5,6 +5,10 @@
 <title>مواقيت الصلاة + تسبيح وأذكار</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Manifest PWA -->
+<link rel="manifest" href="manifest.json">
+
 <style>
 :root { --bg-main: radial-gradient(circle at top, #0b1d2a, #000 60%); --accent: #4aa3ff; }
 * { box-sizing: border-box; font-family: "IBM Plex Sans Arabic", system-ui; }
@@ -110,7 +114,7 @@ h1 { text-align:center; margin-top:0; font-weight:600; font-size:20px; }
 <div class="modal" id="settings">
   <div class="modal-content">
     <h3>الإعدادات</h3>
-    <div class="version">v1.5.1</div>
+    <div class="version">v1.5.2</div>
     <div class="toggle">
       <span>تنسيق الوقت 24 ساعة</span>
       <input type="checkbox" id="timeFormat" onchange="toggleTime()">
@@ -124,7 +128,7 @@ h1 { text-align:center; margin-top:0; font-weight:600; font-size:20px; }
 </div>
 
 <script>
-// صوت الضغط
+// الصوت
 const openSound = new Audio("https://www.myinstants.com/media/sounds/click.mp3");
 
 // ألوان الصلوات
@@ -149,10 +153,28 @@ const settings=document.getElementById("settings");
 function openSettings(){ openSound.play(); settings.classList.add("show"); }
 function closeSettings(){ settings.classList.remove("show"); }
 
-// تحميل
-document.addEventListener("DOMContentLoaded",()=>{ document.getElementById("timeFormat").checked=is24h; });
+// تحميل DOM
+document.addEventListener("DOMContentLoaded",()=>{
+  document.getElementById("timeFormat").checked = is24h;
 
-// تسبيح
+  // حالة الإشعارات محفوظة
+  const notifSaved = localStorage.getItem("notifEnabled") === "true";
+  document.getElementById("notifToggle").checked = notifSaved;
+  if(notifSaved && Notification.permission !== "granted"){
+    Notification.requestPermission().then(p => { if(p!=="granted") document.getElementById("notifToggle").checked = false; });
+  }
+});
+
+// تفعيل/تعطيل الإشعارات
+document.getElementById("notifToggle").addEventListener("change", e => {
+  const enabled = e.target.checked;
+  localStorage.setItem("notifEnabled", enabled);
+  if(enabled && Notification.permission !== "granted"){
+    Notification.requestPermission().then(p => { if(p!=="granted") e.target.checked = false; });
+  }
+});
+
+// التسبيح
 let tasbihCount = parseInt(localStorage.getItem("tasbihCount")) || 0;
 const tasbihDisplay = document.getElementById("tasbihCount");
 tasbihDisplay.innerText = tasbihCount;
@@ -165,7 +187,7 @@ let currentAdhkar = 0;
 const adhkarText = document.getElementById("adhkarText");
 setInterval(()=>{ currentAdhkar = (currentAdhkar+1)%adhkarList.length; adhkarText.innerText = adhkarList[currentAdhkar]; },15000);
 
-// ====== مواقيت الصلاة والعد التنازلي ======
+// ===== مواقيت الصلاة + العد التنازلي =====
 function getNextPrayer(prayerTimes){ const now=new Date(); for(let p in prayerTimes){ if(p==="Sunrise") continue; let [h,m]=prayerTimes[p].split(":").map(Number); let t=new Date(); t.setHours(h,m,0,0); if(now<t) return {name:p,time:t}; } let [h,m]=prayerTimes.Isha.split(":").map(Number); let t=new Date(); t.setHours(h,m,0,0); return {name:"Isha",time:t}; }
 
 let nextTime = null;
@@ -210,21 +232,17 @@ navigator.geolocation.getCurrentPosition(pos=>{
   fetch(`https://api.aladhan.com/v1/timings?latitude=${latitude}&longitude=${longitude}&method=4`)
     .then(r => r.json())
     .then(data => {
-      const gregorian = data.data.date.gregorian;
-      document.getElementById("gregorian").innerText = `${gregorian.weekday.en}, ${gregorian.day} ${gregorian.month.en} ${gregorian.year}`;
-      const hijri = data.data.date.hijri;
-      document.getElementById("hijri").innerText = `${hijri.day} ${hijri.month.ar} ${hijri.year}`;
-
       const times = data.data.timings;
-      const c = document.getElementById("times");
-      c.innerHTML="";
-      const prayers={"Fajr":"الفجر","Dhuhr":"الظهر","Asr":"العصر","Maghrib":"المغرب","Isha":"العشاء"};
+      window.prayerTimesData = times;
+      document.getElementById("city").innerText = data.data.meta.timezone;
+
+      const c=document.getElementById("times"); c.innerHTML="";
+      const prayers = {"Fajr":"الفجر","Dhuhr":"الظهر","Asr":"العصر","Maghrib":"المغرب","Isha":"العشاء"};
       for(let p in prayers){
-        const t = times[p];
-        c.innerHTML += `<div class="time"><span>${prayers[p]}</span><span class="ptime" data-time="${t}">${formatTime(t)}</span></div>`;
+        const t=times[p];
+        c.innerHTML+=`<div class="time"><span>${prayers[p]}</span><span class="ptime" data-time="${t}">${formatTime(t)}</span></div>`;
       }
 
-      window.prayerTimesData = times;
       updateNextPrayerTime(times);
       setInterval(()=>updateNextPrayerTime(times),60000);
     });
@@ -233,16 +251,16 @@ navigator.geolocation.getCurrentPosition(pos=>{
     .then(r=>r.json()).then(d=>{ document.getElementById("city").innerText=`${d.city||d.locality}, ${d.countryName}`; });
 });
 
-// ألوان ديناميكية حسب الصلاة القادمة
-setInterval(()=>{
-  if(!window.prayerTimesData) return;
-  let nextName = document.getElementById("nextPrayerName").innerText;
-  let key = {"الفجر":"Fajr","الظهر":"Dhuhr","العصر":"Asr","المغرب":"Maghrib","العشاء":"Isha"}[nextName];
-  if(key){ document.documentElement.style.setProperty("--bg-main",prayerThemes[key].bg); document.documentElement.style.setProperty("--accent",prayerThemes[key].accent); }
-},5000);
-
-// إشعارات
-document.getElementById("notifToggle").addEventListener("change", e => { if(e.target.checked){ Notification.requestPermission(); } });
+// التاريخ هجري وميلادي
+function updateDates(){
+  const now=new Date();
+  document.getElementById("gregorian").innerText=
+    now.toLocaleDateString("en-US",{ weekday:"long", day:"numeric", month:"long"});
+  document.getElementById("hijri").innerText=
+    now.toLocaleDateString("ar-SA-u-ca-islamic",{ day:"numeric", month:"long", year:"numeric"});
+}
+updateDates();
+setInterval(updateDates,60000);
 
 </script>
 </body>
