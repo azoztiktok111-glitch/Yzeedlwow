@@ -2,10 +2,9 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<title>مواقيت الصلاة + تسبيح وأذكار + مسجد قريب</title>
+<title>مواقيت الصلاة + تسبيح وأذكار + مساجد</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
 <!-- Manifest PWA -->
 <link rel="manifest" href="manifest.json">
 
@@ -28,7 +27,7 @@ body { margin:0; min-height:100vh; background: var(--bg-main); color:#fff; trans
 .content-page.active { display:block; }
 
 .card { background: rgba(255,255,255,0.06); backdrop-filter: blur(16px); border-radius:16px; padding:18px; box-shadow:0 20px 40px rgba(0,0,0,.5); }
-h1 { text-align:center; margin-top:0; font-weight:600; font-size:20px; }
+h1,h2 { text-align:center; margin-top:0; font-weight:600; font-size:20px; }
 .city { text-align:center; opacity:.6; margin-bottom:16px; font-size:13px; }
 .time { background: rgba(255,255,255,0.08); border-radius:10px; padding:10px 14px; display:flex; justify-content:space-between; margin-bottom:8px; font-size:13px; }
 
@@ -40,7 +39,7 @@ h1 { text-align:center; margin-top:0; font-weight:600; font-size:20px; }
 
 /* شريط سفلي */
 .bottom-nav { position:fixed; bottom:0; width:100%; height:55px; display:flex; justify-content:space-around; align-items:center; background:rgba(0,0,0,.55); backdrop-filter:blur(12px); z-index:20; }
-.bottom-nav button { background:none; border:none; color:#fff; font-size:16px; cursor:pointer; display:flex; flex-direction:column; align-items:center; }
+.bottom-nav button { background:none; border:none; color:#fff; font-size:18px; cursor:pointer; display:flex; flex-direction:column; align-items:center; }
 .bottom-nav button.active { color: var(--accent); }
 
 /* صفحة التسبيح */
@@ -52,8 +51,8 @@ h1 { text-align:center; margin-top:0; font-weight:600; font-size:20px; }
 .adhkarText { white-space:normal; font-size:14px; color:#fff; line-height:1.6; margin-top:10px; }
 
 /* صفحة المساجد */
-#mapMessage { text-align:center; margin-bottom:10px; }
-#map { width:100%; height:400px; border-radius:16px; }
+#map { width:100%; height:300px; margin-top:10px; border-radius:12px; }
+#mapMessage { text-align:center; margin-top:10px; font-size:14px; }
 
 /* Modal الإعدادات */
 .modal { position: fixed; inset:0; background:rgba(0,0,0,.7); opacity:0; pointer-events:none; display:flex; justify-content:center; align-items:center; transition:opacity .35s ease; z-index:30; }
@@ -79,7 +78,7 @@ h1 { text-align:center; margin-top:0; font-weight:600; font-size:20px; }
   </div>
 </div>
 
-<!-- الصفحات -->
+<!-- صفحات التطبيق -->
 <div class="content-page active" id="homePage">
   <div class="nextPrayerCard">
     <div id="nextPrayerLabel">الصلاة القادمة :</div>
@@ -105,12 +104,13 @@ h1 { text-align:center; margin-top:0; font-weight:600; font-size:20px; }
 <div class="content-page" id="adhkarPage">
   <h2>الأذكار</h2>
   <div class="adhkarText" id="adhkarText">
-    سبحان الله وبحمده سبحان الله العظيم الحمد لله لا إله إلا الله والله أكبر لا حول ولا قوة إلا بالله العلي العظيم...
+    سبحان الله وبحمده سبحان الله العظيم الحمد لله لا إله إلا الله والله أكبر...
   </div>
 </div>
 
 <div class="content-page" id="mosquePage">
-  <h2>أقرب المساجد</h2>
+  <h2>البحث عن مسجد</h2>
+  <button id="findMosqueBtn">بحث عن المساجد القريبة</button>
   <div id="mapMessage">اضغط زر البحث عن مسجد لتحديد موقعك</div>
   <div id="map"></div>
 </div>
@@ -119,13 +119,14 @@ h1 { text-align:center; margin-top:0; font-weight:600; font-size:20px; }
   <button onclick="showPage('homePage')" id="navHome">الصلاة</button>
   <button onclick="showPage('tasbihPage')" id="navTasbih">التسبيح</button>
   <button onclick="showPage('adhkarPage')" id="navAdhkar">الأذكار</button>
-  <button onclick="showMosquePage()" id="navMosque">بحث عن مسجد</button>
+  <button onclick="showPage('mosquePage')" id="navMosque">المسجد</button>
 </div>
 
+<!-- إعدادات -->
 <div class="modal" id="settings">
   <div class="modal-content">
     <h3>الإعدادات</h3>
-    <div class="version">v1.5.2</div>
+    <div class="version">v1.5.3</div>
     <div class="toggle">
       <span>تنسيق الوقت 24 ساعة</span>
       <input type="checkbox" id="timeFormat" onchange="toggleTime()">
@@ -138,13 +139,9 @@ h1 { text-align:center; margin-top:0; font-weight:600; font-size:20px; }
   </div>
 </div>
 
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyACtFW3zuoyssiCj2mDfGkaaOZoGd0pMpg&libraries=places"></script>
-
 <script>
-// الصوت
+// ===== الأصوات والألوان =====
 const openSound = new Audio("https://www.myinstants.com/media/sounds/click.mp3");
-
-// ألوان الصلوات
 const prayerThemes = {
   Fajr: { bg:"radial-gradient(circle at top, #1c3b57, #000 65%)", accent:"#7fc8ff" },
   Dhuhr: { bg:"radial-gradient(circle at top, #1a2e3f, #000 65%)", accent:"#4aa3ff" },
@@ -153,110 +150,114 @@ const prayerThemes = {
   Isha: { bg:"radial-gradient(circle at top, #0b1320, #000 70%)", accent:"#3b82f6" }
 };
 
-// 12/24 ساعة
+// ===== الوقت 12/24 ساعة =====
 let is24h = localStorage.getItem("timeFormat")==="24";
 function formatTime(time){ let [h,m]=time.split(":").map(Number); if(is24h) return `${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}`; const period=h>=12?"م":"ص"; h=h%12||12; return `${h}:${m.toString().padStart(2,"0")} ${period}`; }
 function toggleTime(){ is24h=document.getElementById("timeFormat").checked; localStorage.setItem("timeFormat",is24h?"24":"12"); document.querySelectorAll(".ptime").forEach(el=>{ el.innerText=formatTime(el.dataset.time); }); }
 
-// الصفحات
-function showPage(id){ document.querySelectorAll(".content-page").forEach(p=>p.classList.remove("active")); document.getElementById(id).classList.add("active"); document.querySelectorAll(".bottom-nav button").forEach(b=>b.classList.remove("active")); document.querySelector(`#nav${id.charAt(0).toUpperCase()+id.slice(1)}`).classList.add("active"); }
-
-// زر البحث عن مسجد
-function showMosquePage(){
-  showPage('mosquePage');
-  initMap();
+// ===== الصفحات =====
+function showPage(id){
+  document.querySelectorAll(".content-page").forEach(p=>p.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  document.querySelectorAll(".bottom-nav button").forEach(b=>b.classList.remove("active"));
+  document.querySelector(`#nav${id.charAt(0).toUpperCase()+id.slice(1)}`).classList.add("active");
 }
 
-// إعدادات
+// ===== إعدادات =====
 const settings=document.getElementById("settings");
 function openSettings(){ openSound.play(); settings.classList.add("show"); }
 function closeSettings(){ settings.classList.remove("show"); }
 
-// تحميل DOM
+// ===== DOMContentLoaded =====
 document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("timeFormat").checked = is24h;
-
-  // حالة الإشعارات محفوظة
-  const notifSaved = localStorage.getItem("notifEnabled") === "true";
+  const notifSaved = localStorage.getItem("notifEnabled")==="true";
   document.getElementById("notifToggle").checked = notifSaved;
-  if(notifSaved && Notification.permission !== "granted"){
-    Notification.requestPermission().then(p => { if(p!=="granted") document.getElementById("notifToggle").checked = false; });
+  if(notifSaved && Notification.permission!=="granted"){
+    Notification.requestPermission().then(p=>{ if(p!=="granted") document.getElementById("notifToggle").checked=false; });
   }
 });
 
-// تفعيل/تعطيل الإشعارات
-document.getElementById("notifToggle").addEventListener("change", e => {
-  const enabled = e.target.checked;
+// ===== إشعارات =====
+document.getElementById("notifToggle").addEventListener("change", e=>{
+  const enabled=e.target.checked;
   localStorage.setItem("notifEnabled", enabled);
-  if(enabled && Notification.permission !== "granted"){
-    Notification.requestPermission().then(p => { if(p!=="granted") e.target.checked = false; });
+  if(enabled && Notification.permission!=="granted"){
+    Notification.requestPermission().then(p=>{ if(p!=="granted") e.target.checked=false; });
   }
 });
 
-// التسبيح
-let tasbihCount = parseInt(localStorage.getItem("tasbihCount")) || 0;
-const tasbihDisplay = document.getElementById("tasbihCount");
-tasbihDisplay.innerText = tasbihCount;
-document.getElementById("tasbihBtn").addEventListener("click", () => { tasbihCount++; tasbihDisplay.innerText = tasbihCount; localStorage.setItem("tasbihCount", tasbihCount); });
-document.getElementById("resetTasbih").addEventListener("click", () => { tasbihCount = 0; tasbihDisplay.innerText = tasbihCount; localStorage.setItem("tasbihCount", tasbihCount); });
+// ===== التسبيح =====
+let tasbihCount=parseInt(localStorage.getItem("tasbihCount"))||0;
+const tasbihDisplay=document.getElementById("tasbihCount");
+tasbihDisplay.innerText=tasbihCount;
+document.getElementById("tasbihBtn").addEventListener("click",()=>{ tasbihCount++; tasbihDisplay.innerText=tasbihCount; localStorage.setItem("tasbihCount",tasbihCount); });
+document.getElementById("resetTasbih").addEventListener("click",()=>{ tasbihCount=0; tasbihDisplay.innerText=tasbihCount; localStorage.setItem("tasbihCount",tasbihCount); });
 
-// الأذكار
-const adhkarList = [ "سبحان الله وبحمده سبحان الله العظيم الحمد لله لا إله إلا الله والله أكبر...", "أستغفر الله العظيم أستغفر الله وأتوب إليه سبحان الله والحمد لله والله أكبر" ];
-let currentAdhkar = 0;
-const adhkarText = document.getElementById("adhkarText");
-setInterval(()=>{ currentAdhkar = (currentAdhkar+1)%adhkarList.length; adhkarText.innerText = adhkarList[currentAdhkar]; },15000);
+// ===== الأذكار =====
+const adhkarList=["سبحان الله وبحمده سبحان الله العظيم الحمد لله لا إله إلا الله والله أكبر...","أستغفر الله العظيم أستغفر الله وأتوب إليه سبحان الله والحمد لله والله أكبر"];
+let currentAdhkar=0;
+const adhkarText=document.getElementById("adhkarText");
+setInterval(()=>{ currentAdhkar=(currentAdhkar+1)%adhkarList.length; adhkarText.innerText=adhkarList[currentAdhkar]; },15000);
 
 // ===== مواقيت الصلاة + العد التنازلي =====
-function getNextPrayer(prayerTimes){ const now=new Date(); for(let p in prayerTimes){ if(p==="Sunrise") continue; let [h,m]=prayerTimes[p].split(":").map(Number); let t=new Date(); t.setHours(h,m,0,0); if(now<t) return {name:p,time:t}; } let [h,m]=prayerTimes.Isha.split(":").map(Number); let t=new Date(); t.setHours(h,m,0,0); return {name:"Isha",time:t}; }
-
-let nextTime = null;
+function getNextPrayer(prayerTimes){
+  const now=new Date();
+  for(let p in prayerTimes){
+    if(p==="Sunrise") continue;
+    const [h,m]=prayerTimes[p].split(":").map(Number);
+    let t=new Date(); t.setHours(h,m,0,0);
+    if(now<t) return {name:p,time:t};
+  }
+  const [h,m]=prayerTimes.Isha.split(":").map(Number);
+  let t=new Date(); t.setHours(h,m,0,0);
+  return {name:"Isha",time:t};
+}
+let nextTime=null;
 function updateNextPrayerTime(prayerTimes){
-  const now = new Date();
-  const [fajrH,fajrM] = prayerTimes.Fajr.split(":").map(Number);
-  const [sunH,sunM] = prayerTimes.Sunrise.split(":").map(Number);
-  const fajrTime = new Date(); fajrTime.setHours(fajrH,fajrM,0,0);
-  const sunriseTime = new Date(); sunriseTime.setHours(sunH,sunM,0,0);
+  const now=new Date();
+  const [fajrH,fajrM]=prayerTimes.Fajr.split(":").map(Number);
+  const [sunH,sunM]=prayerTimes.Sunrise.split(":").map(Number);
+  const fajrTime=new Date(); fajrTime.setHours(fajrH,fajrM,0,0);
+  const sunriseTime=new Date(); sunriseTime.setHours(sunH,sunM,0,0);
 
-  const labelEl = document.getElementById("nextPrayerLabel");
-  const nameEl = document.getElementById("nextPrayerName");
+  const labelEl=document.getElementById("nextPrayerLabel");
+  const nameEl=document.getElementById("nextPrayerName");
 
-  if(now >= fajrTime && now < sunriseTime){
-    labelEl.innerText = "المتبقي على الشروق :";
-    nameEl.innerText = "";
-    nextTime = sunriseTime;
+  if(now>=fajrTime && now<sunriseTime){
+    labelEl.innerText="المتبقي على الشروق :";
+    nameEl.innerText="";
+    nextTime=sunriseTime;
   } else {
-    labelEl.innerText = "الصلاة القادمة :";
-    const next = getNextPrayer(prayerTimes);
-    nameEl.innerText = {"Fajr":"الفجر","Dhuhr":"الظهر","Asr":"العصر","Maghrib":"المغرب","Isha":"العشاء"}[next.name];
-    nextTime = next.time;
+    labelEl.innerText="الصلاة القادمة :";
+    const next=getNextPrayer(prayerTimes);
+    nameEl.innerText={"Fajr":"الفجر","Dhuhr":"الظهر","Asr":"العصر","Maghrib":"المغرب","Isha":"العشاء"}[next.name];
+    nextTime=next.time;
   }
 }
-
-// تحديث العد التنازلي كل ثانية
 setInterval(()=>{
   if(!nextTime) return;
-  const now = new Date();
-  let diff = nextTime - now;
-  const countdownEl = document.getElementById("nextPrayerCountdown");
-  if(diff <=0){ countdownEl.innerText = "حان وقت الصلاة"; return; }
-  const h = Math.floor(diff/1000/60/60);
-  const m = Math.floor((diff/1000/60)%60);
-  const s = Math.floor((diff/1000)%60);
-  countdownEl.innerText = `${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
+  const now=new Date();
+  let diff=nextTime-now;
+  const countdownEl=document.getElementById("nextPrayerCountdown");
+  if(diff<=0){ countdownEl.innerText="حان وقت الصلاة"; return; }
+  const h=Math.floor(diff/1000/60/60);
+  const m=Math.floor((diff/1000/60)%60);
+  const s=Math.floor((diff/1000)%60);
+  countdownEl.innerText=`${h.toString().padStart(2,"0")}:${m.toString().padStart(2,"0")}:${s.toString().padStart(2,"0")}`;
 },1000);
 
-// جلب الموقع وأوقات الصلاة + التاريخ
+// ===== الموقع + مواقيت الصلاة =====
 navigator.geolocation.getCurrentPosition(pos=>{
   const {latitude,longitude}=pos.coords;
   fetch(`https://api.aladhan.com/v1/timings?latitude=${latitude}&longitude=${longitude}&method=4`)
-    .then(r => r.json())
-    .then(data => {
-      const times = data.data.timings;
-      window.prayerTimesData = times;
-      document.getElementById("city").innerText = data.data.meta.timezone;
+    .then(r=>r.json()).then(data=>{
+      const times=data.data.timings;
+      window.prayerTimesData=times;
+      document.getElementById("city").innerText=data.data.meta.timezone;
 
       const c=document.getElementById("times"); c.innerHTML="";
-      const prayers = {"Fajr":"الفجر","Dhuhr":"الظهر","Asr":"العصر","Maghrib":"المغرب","Isha":"العشاء"};
+      const prayers={"Fajr":"الفجر","Dhuhr":"الظهر","Asr":"العصر","Maghrib":"المغرب","Isha":"العشاء"};
       for(let p in prayers){
         const t=times[p];
         c.innerHTML+=`<div class="time"><span>${prayers[p]}</span><span class="ptime" data-time="${t}">${formatTime(t)}</span></div>`;
@@ -270,60 +271,42 @@ navigator.geolocation.getCurrentPosition(pos=>{
     .then(r=>r.json()).then(d=>{ document.getElementById("city").innerText=`${d.city||d.locality}, ${d.countryName}`; });
 });
 
-// التاريخ هجري وميلادي
+// ===== التاريخ هجري وميلادي =====
 function updateDates(){
   const now=new Date();
-  document.getElementById("gregorian").innerText=
-    now.toLocaleDateString("en-US",{ weekday:"long", day:"numeric", month:"long"});
-  document.getElementById("hijri").innerText=
-    now.toLocaleDateString("ar-SA-u-ca-islamic",{ day:"numeric", month:"long", year:"numeric"});
+  document.getElementById("gregorian").innerText=now.toLocaleDateString("en-US",{ weekday:"long", day:"numeric", month:"long"});
+  document.getElementById("hijri").innerText=now.toLocaleDateString("ar-SA-u-ca-islamic",{ day:"numeric", month:"long", year:"numeric"});
 }
 updateDates();
 setInterval(updateDates,60000);
 
-// ===== Google Maps المساجد =====
+// ===== Google Maps + البحث عن مساجد =====
 function initMap(){
-  const mapMessage = document.getElementById("mapMessage");
-  const mapEl = document.getElementById("map");
-  
-  if(navigator.geolocation){
-    mapMessage.innerText = "جارٍ تحديد الموقع...";
-    navigator.geolocation.getCurrentPosition(pos=>{
-      const latitude = pos.coords.latitude;
-      const longitude = pos.coords.longitude;
-
-      const map = new google.maps.Map(mapEl,{
-        center:{lat:latitude,lng:longitude},
-        zoom:15
-      });
-
-      const service = new google.maps.places.PlacesService(map);
-      service.nearbySearch({
-        location:{lat:latitude,lng:longitude},
-        radius:2000,
-        type:['mosque']
-      }, (results,status)=>{
-        mapMessage.innerText="";
-        if(status === google.maps.places.PlacesServiceStatus.OK){
-          results.forEach(place=>{
-            new google.maps.Marker({
-              position:place.geometry.location,
-              map:map,
-              title:place.name
-            });
-          });
-        } else {
-          mapMessage.innerText = "لا يوجد مساجد قريبة";
-        }
-      });
-
-    }, ()=>{
-      mapMessage.innerText = "تعذر الحصول على الموقع";
+  if(!navigator.geolocation) return alert("الموقع غير متوفر");
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const userLoc={lat:pos.coords.latitude,lng:pos.coords.longitude};
+    const map=new google.maps.Map(document.getElementById("map"),{ center:userLoc, zoom:15 });
+    const infoWindow=new google.maps.InfoWindow();
+    const service=new google.maps.places.PlacesService(map);
+    service.nearbySearch({ location:userLoc, radius:2000, type:['mosque'] }, (results,status)=>{
+      if(status===google.maps.places.PlacesServiceStatus.OK){
+        results.forEach(place=>{
+          new google.maps.Marker({ map:map, position:place.geometry.location, title:place.name });
+        });
+        document.getElementById("mapMessage").innerText=`تم العثور على ${results.length} مسجد بالقرب منك`;
+      } else {
+        document.getElementById("mapMessage").innerText="لم يتم العثور على مساجد بالقرب منك";
+      }
     });
-  } else {
-    mapMessage.innerText = "المتصفح لا يدعم تحديد الموقع";
-  }
+  });
 }
+document.getElementById("findMosqueBtn").addEventListener("click", ()=>{
+  document.getElementById("mapMessage").innerText="جارٍ تحديد الموقع...";
+  initMap();
+});
 </script>
+
+<!-- ضع مفتاحك هنا -->
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB7MMQgK0zL5olvReFsALpTatH1QJTzXCA&libraries=places"></script>
 </body>
 </html>
